@@ -1,44 +1,12 @@
-import streamlit as st
-import yfinance as yf
-import plotly.graph_objects as go
-import numpy as np
-
-# --- MİDAS TASARIM (Pro Versiyon) ---
-st.set_page_config(page_title="EminTrade Pro", layout="centered")
-
-st.markdown("""
-    <style>
-    .stApp { background-color: #000000; color: #FFFFFF; }
-    .metric-card { background: #121212; padding: 15px; border-radius: 12px; border: 1px solid #333; }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.title("EminTrade ⚡")
-ticker = st.text_input("", "THYAO.IS").upper()
-
-@st.cache_data(ttl=60)
-def get_data(symbol):
-    return yf.download(symbol, period="3mo", interval="1d")
-
-data = get_data(ticker)
-
-if not data.empty:
-    son_fiyat = float(data['Close'].iloc[-1].item())
-    
-    # 1. MODÜL: KAR/ZARAR SİMÜLATÖRÜ
-    with st.expander("💰 Portföy Hesaplayıcı"):
-        yatirilan = st.number_input("Yatırılan Tutar (TL)", value=10000)
-        adet = yatirilan / float(data['Close'].iloc[0].item())
-        guncel_deger = adet * son_fiyat
-        st.write(f"Tahmini Güncel Değer: **{guncel_deger:.2f} TL**")
-        st.write(f"Toplam Getiri: **{guncel_deger - yatirilan:.2f} TL**")
-
-    # 2. MODÜL: TEKNİK GÖSTERGE (RSI MANTIĞI)
+# 2. MODÜL: TEKNİK GÖSTERGE (RSI MANTIĞI) - HATA DÜZELTİLMİŞ HALİ
     delta = data['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
+    rsi_series = 100 - (100 / (1 + rs))
+    
+    # .iloc[-1] değerini float'a zorluyoruz
+    rsi_value = float(rsi_series.iloc[-1].item())
     
     # Görselleştirme
     st.write(f"## {son_fiyat:.2f} TL")
@@ -48,12 +16,9 @@ if not data.empty:
 
     # 3. MODÜL: PİYASA PSIKOLOJISI (Haber)
     st.subheader("📰 Güncel Piyasa Psikolojisi")
-    if rsi.iloc[-1] > 70:
+    if rsi_value > 70:
         st.warning("⚠️ Aşırı Alım Bölgesi: Kar satışı gelebilir, dikkatli ol!")
-    elif rsi.iloc[-1] < 30:
+    elif rsi_value < 30:
         st.success("✅ Aşırı Satım Bölgesi: Alım fırsatı olabilir.")
     else:
-        st.info("📊 Piyasa Nötr: Bekle ve gör stratejisi.")
-
-else:
-    st.error("Hisse bulunamadı.")
+        st.info(f"📊 Piyasa Nötr: RSI Değeri: {rsi_value:.2f} - Bekle ve gör.")
