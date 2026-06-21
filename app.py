@@ -1,4 +1,6 @@
-# 2. MODÜL: TEKNİK GÖSTERGE (RSI MANTIĞI) - HATA DÜZELTİLMİŞ HALİ
+
+if not data.empty:
+    # 2. MODÜL: TEKNİK GÖSTERGE (RSI MANTIĞI)
     delta = data['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -9,12 +11,13 @@
     rsi_value = float(rsi_series.iloc[-1].item())
     
     # Görselleştirme
+    son_fiyat = float(data['Close'].iloc[-1].item())
     st.write(f"## {son_fiyat:.2f} TL")
     fig = go.Figure(data=[go.Scatter(x=data.index, y=data['Close'], line=dict(color='#007AFF', width=2))])
     fig.update_layout(template="plotly_dark", height=250, margin=dict(l=0,r=0,t=0,b=0))
     st.plotly_chart(fig, use_container_width=True)
 
-    # 3. MODÜL: PİYASA PSIKOLOJISI (Haber)
+    # 3. MODÜL: PİYASA PSIKOLOJISI
     st.subheader("📰 Güncel Piyasa Psikolojisi")
     if rsi_value > 70:
         st.warning("⚠️ Aşırı Alım Bölgesi: Kar satışı gelebilir, dikkatli ol!")
