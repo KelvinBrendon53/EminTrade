@@ -1,5 +1,4 @@
-
-if not data.empty:
+      if not data.empty:
     # 2. MODÜL: TEKNİK GÖSTERGE (RSI MANTIĞI)
     delta = data['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
