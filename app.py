@@ -1,62 +1,61 @@
 import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
-from datetime import datetime
 
-# --- ARAYÜZ AYARLARI ---
-st.set_page_config(page_title="EminTrade Pro", layout="wide")
+# --- MİDAS TASARIM (Mobile First) ---
+st.set_page_config(page_title="EminTrade", layout="centered")
 
-# Midas-vari Koyu Tema CSS
 st.markdown("""
     <style>
-    .stApp { background-color: #0a0a0a; color: white; }
-    .css-1r6slp0 { padding: 1rem; }
-    .metric-card { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; }
+    /* Midas Renk Paleti ve Fontlar */
+    .stApp { background-color: #000000; color: #FFFFFF; font-family: sans-serif; }
+    h1 { font-size: 24px !important; margin-bottom: 0px !important; }
+    .stMetric { background-color: #121212; padding: 15px; border-radius: 12px; border: 1px solid #222; }
+    .stButton>button { width: 100%; border-radius: 20px; background-color: #007AFF; color: white; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🧭 EminTrade Pro")
-st.caption(f"Güncel Zaman: {datetime.now().strftime('%H:%M:%S')}")
+# Başlık
+st.title("EminTrade")
+st.caption("Piyasa Gözlemcisi")
 
-# --- SIDEBAR - VERİ YÖNETİMİ ---
-ticker = st.sidebar.text_input("Hisse Kodu (Örn: THYAO.IS)", "THYAO.IS").upper()
-btn_refresh = st.sidebar.button("🔄 Veriyi Yenile")
+# Hisse Girişi
+ticker = st.text_input("", "THYAO.IS").upper()
 
-# --- DATA FETCHING (Canlı Veri Çekme) ---
-@st.cache_data(ttl=60) # 60 saniyede bir veriyi taze tutar
+@st.cache_data(ttl=60)
 def get_data(symbol):
-    return yf.download(symbol, period="3mo", interval="1d")
+    return yf.download(symbol, period="1mo", interval="1d")
 
 data = get_data(ticker)
 
 if not data.empty:
-    # --- MİDAS TARZI KARTLAR ---
     son_fiyat = float(data['Close'].iloc[-1].item())
-    onceki_fiyat = float(data['Close'].iloc[-2].item())
-    degisim = ((son_fiyat - onceki_fiyat) / onceki_fiyat) * 100
+    degisim = ((son_fiyat - float(data['Close'].iloc[-2].item())) / float(data['Close'].iloc[-2].item())) * 100
     
-    col1, col2, col3 = st.columns(3)
-    with col1: st.metric("Anlık Fiyat", f"{son_fiyat:.2f} TL")
-    with col2: st.metric("Günlük Değişim", f"%{degisim:.2f}", delta=f"{degisim:.2f}%")
-    with col3: st.metric("İşlem Hacmi", f"{int(data['Volume'].iloc[-1].item()):,}")
-
-    # --- TEKNİK ANALİZ (Grafik) ---
-    fig = go.Figure(data=[go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'])])
-    fig.update_layout(template="plotly_dark", height=400, margin=dict(l=0, r=0, t=20, b=0))
+    # Midas Tarzı Üst Panel
+    st.write(f"## {son_fiyat:.2f} TL")
+    st.write(f":{'green' if degisim >= 0 else 'red'}[%{degisim:.2f}]")
+    
+    # Grafik (Minimalist)
+    fig = go.Figure(data=[go.Scatter(x=data.index, y=data['Close'], line=dict(color='#007AFF', width=2))])
+    fig.update_layout(
+        template="plotly_dark",
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=250
+    )
     st.plotly_chart(fig, use_container_width=True)
-
-    # --- DETAYLI ANALİZ (İstatistikler) ---
-    st.subheader("📊 Derinlemesine Analiz")
-    tab1, tab2 = st.tabs(["Teknik Detay", "Hisse Bilgisi"])
     
-    with tab1:
-        # Basit Hareketli Ortalama (SMA) hesabı
-        sma = data['Close'].rolling(window=20).mean()
-        st.line_chart(data['Close'])
-        st.write("20 Günlük Hareketli Ortalama: Grafikteki yükseliş trendini destekliyor.")
-        
-    with tab2:
-        st.write(f"**{ticker}** hakkında detaylı borsa verileri güncel olarak yfinance üzerinden çekilmektedir. 3 aylık periyotta maksimum değer: {data['High'].max().item():.2f} TL.")
+    # Midas Kartları
+    c1, c2 = st.columns(2)
+    c1.metric("En Yüksek", f"{float(data['High'].max().item()):.2f}")
+    c2.metric("En Düşük", f"{float(data['Low'].min().item()):.2f}")
+    
+    st.button("Alış Yap")
+    st.button("Satış Yap")
 
 else:
-    st.warning("Hisse verisi çekilemedi. Lütfen geçerli bir kod girin (Örn: ASELS.IS).")
+    st.error("Hisse bulunamadı.")
